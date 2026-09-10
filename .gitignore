@@ -1,0 +1,5 @@
+﻿# AutoPush: nested Git repositories
+**/.git/**
+# AutoPush temporary files
+autopush-log.txt
+mail-guardian/
