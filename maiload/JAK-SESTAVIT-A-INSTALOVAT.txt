@@ -1,0 +1,242 @@
+================================================================================
+  MailLoadTester – NÁVOD: jak vytvořit EXE a autoinstalátor pro Windows
+  (napsáno tak, aby to zvládl i úplný začátečník)
+================================================================================
+
+Co na konci získáte
+-------------------
+  A) MailLoadTester.exe
+     – program, který funguje po dvojkliku (přenosný)
+
+  B) Setup-MailLoadTester.exe
+     – instalátor: nainstaluje program, vytvoří zástupce v nabídce Start
+       a umožní odinstalaci v „Nastavení → Aplikace“
+
+DŮLEŽITÉ
+--------
+  • Tento návod je pro Windows 10 nebo 11 (64bit).
+  • Instalátor (bod B) se vytváří JEDNOU na počítači s nástroji.
+    Hotový Setup-....exe pak můžete dát komukoli – ten už nic
+    kompilovat nemusí, jen spustí instalaci.
+  • Self-contained EXE je velký (cca 150–170 MB), protože obsahuje
+    .NET runtime. Nemusíte na cílovém PC nic dalšího instalovat.
+
+
+================================================================================
+ČÁST 1 – Jednorázová příprava počítače (uděláte jen jednou)
+================================================================================
+
+Krok 1.1  Stáhněte .NET 8 SDK
+  1. Otevřete prohlížeč.
+  2. Jděte na:  https://dotnet.microsoft.com/download/dotnet/8.0
+  3. V sekci „SDK 8.0.x“ stáhněte:  Windows x64
+  4. Spusťte stažený instalátor a dokončete instalaci (Další → Další → Instalovat).
+
+Krok 1.2  Ověřte, že funguje
+  1. Stiskněte klávesu Windows, napište:  cmd
+  2. Otevřete „Příkazový řádek“.
+  3. Napište přesně:
+
+        dotnet --version
+
+  4. Enter.
+  5. Mělo by se objevit číslo začínající 8. (např. 8.0.423).
+     Pokud napíše „není rozpoznován“:
+       – restartujte PC po instalaci SDK
+       – nebo zkuste znovu otevřít příkazový řádek
+
+Krok 1.3  (Jen pro autoinstalátor) Stáhněte Inno Setup
+  1. Jděte na:  https://jrsoftware.org/isdl.php
+  2. Stáhněte „Inno Setup“ (např. innosetup-6.x.x.exe).
+  3. Nainstalujte (stačí výchozí volby).
+  4. Po instalaci budete mít program „Inno Setup Compiler“.
+
+
+================================================================================
+ČÁST 2 – Příprava složky se zdrojovým kódem
+================================================================================
+
+Krok 2.1
+  Rozbalte ZIP se zdroji (např. MailLoadTester-2.8.4-source.zip)
+  do jednoduché cesty BEZ mezer a háčků, například:
+
+        C:\src\MailLoadTester
+
+  Špatně:  C:\Users\Honza\Dokumenty\Můj projekt (2)\MailLoadTester
+  Lépe:    C:\src\MailLoadTester
+
+Krok 2.2
+  Ve složce musí být vidět mimo jiné:
+
+        MailLoadTester.sln
+        src\MailLoadTester\
+        src\MailLoadTester.Core\
+        installer\MailLoadTester.iss
+        JAK-SESTAVIT-A-INSTALOVAT.txt   (tento soubor)
+
+
+================================================================================
+ČÁST 3 – Sestavení přenosného EXE (self-contained)
+================================================================================
+
+Krok 3.1  Otevřete příkazový řádek ve složce projektu
+  Varianta A:
+    – V Průzkumníku otevřete C:\src\MailLoadTester
+    – Klikněte do adresního řádku, napište:  cmd
+    – Enter
+
+  Varianta B:
+    – Windows → cmd
+    – Napište:  cd /d C:\src\MailLoadTester
+    – Enter
+
+Krok 3.2  Obnovte balíčky
+  Napište:
+
+        dotnet restore
+
+  Enter. Počkejte na „Restore completed“.
+
+Krok 3.3  Sestavte přenosný EXE pro Windows 64bit
+  Napište JEDEN dlouhý příkaz (nebo zkopírujte celý):
+
+        dotnet publish src\MailLoadTester -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+
+  Enter. Může to trvat několik minut (stahuje runtime).
+
+Krok 3.4  Kde je hotový program?
+  Soubor bude zde:
+
+        C:\src\MailLoadTester\publish\MailLoadTester.exe
+
+  Tento EXE můžete zkopírovat na USB a spustit na jiném Windows 10/11 x64
+  BEZ instalace .NET.
+
+
+ČASTÉ CHYBY PŘI SESTAVENÍ
+-------------------------
+  • „dotnet není rozpoznován“
+      → Není nainstalované SDK, nebo není v PATH → reinstalace SDK + restart PC
+
+  • „Project ... WindowsForms ... cannot be run on this platform“
+      → Sestavujete na Linuxu/Mac bez EnableWindowsTargeting.
+        Tento návod je pro sestavení NA WINDOWS.
+
+  • „Access denied“ / „soubor je používán“
+      → Zavřete běžící MailLoadTester.exe a sestavte znovu.
+
+  • Publish skončí, ale EXE nejde spustit
+      → Ověřte, že jste použili -r win-x64 a --self-contained true
+      → Antivir někdy nový EXE „drží“ – zkuste výjimku nebo chvíli počkat
+
+
+================================================================================
+ČÁST 4 – Autoinstalátor (Setup.exe) pomocí Inno Setup
+================================================================================
+
+Předpoklad: máte hotový EXE z ČÁSTI 3 ve složce  publish\
+
+Krok 4.1  Upravte cesty ve skriptu (pokud je potřeba)
+  Otevřete v Poznámkovém bloku:
+
+        installer\MailLoadTester.iss
+
+  Zkontrolujte řádky:
+
+        #define MyAppSource  "..\publish\MailLoadTester.exe"
+
+  Pokud jste publish dali jinam, upravte cestu k EXE.
+  Cesta je relativní ke složce installer\.
+
+Krok 4.2  Otevřete skript v Inno Setup
+  1. Spusťte „Inno Setup Compiler“.
+  2. Soubor → Otevřít → vyberte:
+
+        C:\src\MailLoadTester\installer\MailLoadTester.iss
+
+Krok 4.3  Sestavte instalátor
+  1. Menu: Build → Compile  (nebo zelené Play / F9)
+  2. Dole v logu musí být „Successful compile“.
+  3. Hotový instalátor bude typicky zde:
+
+        C:\src\MailLoadTester\installer\Output\Setup-MailLoadTester.exe
+
+Krok 4.4  Co instalátor udělá na cílovém PC
+  • Zkopíruje MailLoadTester.exe do Program Files
+  • Vytvoří zástupce v nabídce Start
+  • Volitelně zástupce na ploše
+  • Zápis pro odinstalaci (Nastavení → Aplikace)
+
+
+ČASTÉ CHYBY U INSTALÁTORU
+-------------------------
+  • „File not found“ při Compile
+      → Neexistuje publish\MailLoadTester.exe → nejdřív ČÁST 3
+
+  • Antivir hlásí Setup
+      → Nově sestavené instalátory někdy „Unknown publisher“.
+        Podepsání certifikátem je pokročilé; pro interní použití obvykle stačí
+        výjimka / „Přesto spustit“.
+
+  • Instalace vyžaduje práva správce
+      → Normální při zápisu do Program Files. Spusťte Setup jako správce,
+        nebo ve skriptu změňte DefaultDirName na {localappdata}\MailLoadTester
+        (pak často stačí běžná práva).
+
+
+================================================================================
+ČÁST 5 – Alternativa: menší EXE (vyžaduje .NET Runtime na PC)
+================================================================================
+
+Pokud nechcete 160MB soubor, sestavte „framework-dependent“:
+
+        dotnet publish src\MailLoadTester -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish-fdd
+
+  EXE bude malý (jednotky MB), ale na každém PC musí být nainstalované:
+
+        .NET 8 Desktop Runtime (Windows x64)
+        https://dotnet.microsoft.com/download/dotnet/8.0
+
+  Pro autoinstalaci u této varianty by instalátor měl buď:
+    – vyžadovat Runtime, nebo
+    – Runtime přibalit (složitější).
+  Pro jednoduchost doporučujeme self-contained z ČÁSTI 3.
+
+
+================================================================================
+ČÁST 6 – Kontrolní seznam před předáním někomu jinému
+================================================================================
+
+  [ ] EXE z publish\ se u vás spustí (okno MailLoadTester)
+  [ ] Dry-run v aplikaci doběhne bez pádu
+  [ ] Setup-MailLoadTester.exe nainstaluje program na čistém PC / ve virtuálu
+  [ ] Po instalaci jde program spustit z nabídky Start
+  [ ] Odinstalace v Nastavení → Aplikace program odstraní
+
+
+================================================================================
+Struktura projektu (orientace)
+================================================================================
+
+  MailLoadTester.sln              – solution (celý projekt)
+  src\MailLoadTester\             – GUI + CLI (Windows Forms)
+  src\MailLoadTester.Core\        – logika SMTP, pool, validace
+  tests\                          – automatické testy
+  installer\MailLoadTester.iss    – skript autoinstalátoru
+  publish\                        – vznikne po ČÁSTI 3 (není v Gitu nutné)
+  JAK-SESTAVIT-A-INSTALOVAT.txt   – tento návod
+
+
+================================================================================
+Na co si dát pozor (shrnutí)
+================================================================================
+
+  1. Sestavujte na Windows, cíl win-x64.
+  2. Cesta ke zdrojům bez zbytečných mezer a speciálních znaků.
+  3. Nejdřív publish EXE, teprve potom Inno Setup.
+  4. Self-contained = velký soubor, ale žádný .NET na cíli.
+  5. Při chybě čtěte červený text v příkazovém řádku / v Inno logu – většinou
+     říká přesně, který soubor nebo parametr chybí.
+
+Konec návodu.
+================================================================================

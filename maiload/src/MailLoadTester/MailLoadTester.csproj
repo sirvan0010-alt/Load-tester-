@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>MailLoadTester</AssemblyName>
+    <Version>2.8.10</Version>
+    <FileVersion>2.8.10.0</FileVersion>
+    <InformationalVersion>2.8.10</InformationalVersion>
+    <RootNamespace>MailLoadTester</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MailLoadTester.Core\MailLoadTester.Core.csproj" />
+  </ItemGroup>
+</Project>
